@@ -1,0 +1,129 @@
+spring:
+  application:
+    name: stream-processor-service
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/streamflow
+    username: streamflow
+    password: streamflow123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: StreamflowHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 1000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    streams:
+      application-id: streamflow-processor
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      default-key-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      default-value-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      properties:
+        processing.guarantee: exactly_once_v2
+        commit.interval.ms: 1000
+        num.stream.threads: 2
+        cache.max.bytes.buffering: 10485760
+        replication.factor: 1
+        spring.json.trusted.packages: "com.streamflow.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+streamflow:
+  kafka:
+    topics:
+      user-events: user-events
+      product-metrics: product-metrics
+      session-events: session-events
+      dead-letter-queue: dead-letter-queue
+  streams:
+    tumbling-window-minutes: 5
+    hopping-window-minutes: 5
+    hopping-advance-minutes: 1
+    session-inactivity-gap-minutes: 10
+    grace-period-minutes: 1
+
+logging:
+  level:
+    com.streamflow: DEBUG
+    org.apache.kafka.streams: WARN
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:5432/streamflow
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+    streams:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+
+logging:
+  level:
+    com.streamflow: INFO

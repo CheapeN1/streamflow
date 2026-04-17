@@ -1,0 +1,200 @@
+{
+  "title": "StreamFlow Real-Time Analytics",
+  "uid": "streamflow-main",
+  "schemaVersion": 36,
+  "version": 4,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "Events Per Second",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sum(rate(streamflow_events_published_total[1m]))",
+          "legendFormat": "Published/sec"
+        },
+        {
+          "expr": "sum(rate(streamflow_events_failed_total[1m]))",
+          "legendFormat": "Failed/sec"
+        },
+        {
+          "expr": "sum(rate(streamflow_simulated_events_total[1m]))",
+          "legendFormat": "Simulated/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } }
+      }
+    },
+
+    {
+      "id": 2,
+      "title": "Active Users",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "max(streamflow_active_users)", "legendFormat": "Active Users" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 20 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "id": 3,
+      "title": "Windows Processed",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "sum(streamflow_windows_processed_total)", "legendFormat": "Total" }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" } }
+      }
+    },
+
+    {
+      "id": 9,
+      "title": "Sessions Processed",
+      "type": "stat",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "sum(streamflow_sessions_processed_total)", "legendFormat": "Sessions" }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "purple", "mode": "fixed" } }
+      }
+    },
+
+    {
+      "id": 4,
+      "title": "Event Type Distribution",
+      "type": "piechart",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 9 },
+      "targets": [
+        {
+          "expr": "sum by (event_type) (streamflow_events_by_type_total)",
+          "legendFormat": "{{event_type}}"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
+      }
+    },
+
+    {
+      "id": 5,
+      "title": "Window Processing Rate by Type",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 7, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(streamflow_windows_processed_by_type_total[1m])",
+          "legendFormat": "{{window_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } }
+      }
+    },
+
+    {
+      "id": 6,
+      "title": "DB Write Duration (p50 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(streamflow_db_write_duration_seconds_bucket[2m])) by (le, window_type))",
+          "legendFormat": "p99 {{window_type}}"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(streamflow_db_write_duration_seconds_bucket[2m])) by (le, window_type))",
+          "legendFormat": "p50 {{window_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+
+    {
+      "id": 10,
+      "title": "Conversion Funnel (Last 30 min)",
+      "type": "bargauge",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sum(streamflow_events_by_type_total{event_type=\"CLICK\"})",
+          "legendFormat": "CLICK"
+        },
+        {
+          "expr": "sum(streamflow_events_by_type_total{event_type=\"ADD_TO_CART\"})",
+          "legendFormat": "ADD_TO_CART"
+        },
+        {
+          "expr": "sum(streamflow_events_by_type_total{event_type=\"PURCHASE\"})",
+          "legendFormat": "PURCHASE"
+        },
+        {
+          "expr": "sum(streamflow_events_by_type_total{event_type=\"EXIT\"})",
+          "legendFormat": "EXIT"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "continuous-GrYlRd" } }
+      }
+    },
+
+    {
+      "id": 7,
+      "title": "Redis Write Failures",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(streamflow_redis_failures_total[1m])",
+          "legendFormat": "Failures/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "red", "mode": "fixed" }, "unit": "reqps" }
+      }
+    },
+
+    {
+      "id": 8,
+      "title": "JVM Heap Usage — All Services",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (job) (jvm_memory_used_bytes{area=\"heap\"})",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "color": { "mode": "palette-classic" } }
+      }
+    }
+
+  ]
+}

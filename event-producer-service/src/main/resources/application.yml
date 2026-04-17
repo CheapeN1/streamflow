@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: event-producer-service
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
+        linger.ms: 5
+        batch.size: 16384
+        compression.type: lz4
+        spring.json.add.type.headers: false
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+streamflow:
+  kafka:
+    topics:
+      user-events: user-events
+      dead-letter-queue: dead-letter-queue
+  producer:
+    auto-generate-events: false      # true yapınca simulator devreye girer
+    events-per-second: 5
+    simulator-interval-ms: 2000
+    product-id-range: 20
+
+logging:
+  level:
+    com.streamflow: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+
+logging:
+  level:
+    com.streamflow: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8083
+
+streamflow:
+  producer:
+    auto-generate-events: true
+    events-per-second: 5
+    simulator-interval-ms: 2000
